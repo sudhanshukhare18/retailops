@@ -5,8 +5,9 @@ from config import DATABASE_URL
 
 pool = ConnectionPool(
     conninfo=DATABASE_URL,
-    min_size=1,
-    max_size=10
+    min_size=0,
+    max_size=10,
+    open=False
 )
 
 

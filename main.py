@@ -260,9 +260,9 @@ def get_business_rules():
 # DATABASE INITIALIZATION
 # ==================================================
 
-initialize_database()
+# initialize_database()
 
-seed_sample_data()
+# seed_sample_data()
 
 
 # ==================================================
@@ -270,10 +270,16 @@ seed_sample_data()
 # ==================================================
 
 if __name__ == "__main__":
+
+    print("Initializing RetailOps database...")
+
     initialize_database()
+    seed_sample_data()
+
+    print("Starting RetailOps MCP server...")
 
     mcp.run(
         transport="http",
         host="0.0.0.0",
-        port=8000
+        port=int(os.getenv("PORT", "8000"))
     )
