@@ -1,0 +1,16 @@
+{
+    "loyalty_program": {
+        "enabled": true,
+        "minimum_lifetime_profit": 10000,
+        "discount_percentage_of_current_order_profit": 10
+    },
+
+    "free_delivery": {
+        "minimum_remaining_profit": 4000
+    },
+
+    "delivery": {
+        "default_status": "NORMAL DELIVERY",
+        "free_status": "FREE DELIVERY"
+    }
+}
