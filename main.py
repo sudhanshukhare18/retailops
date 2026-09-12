@@ -2,116 +2,153 @@ import os
 
 from fastmcp import FastMCP
 
-from database import (
-    initialize_database,
-    seed_sample_data
+from database import initialize_database
+
+from tools.auth_tools import (
+    login,
+    logout,
+    get_authenticated_user
 )
 
-from tools import (
+from tools.session_tools import (
+    start_customer_session,
+    get_current_customer_session,
+    end_customer_session
+)
 
-    # Customer
-    find_customer,
-    get_customer_details,
-    get_customer_lifetime_profit,
-
-    # Product
-    search_product,
-    get_product_price,
-    check_stock,
-
-    # Cart
+from tools.cart_tools import (
     add_to_cart,
     remove_from_cart,
     update_cart_quantity,
     view_cart,
-    clear_cart,
-
-    # Billing
-    generate_bill
+    clear_cart
 )
+
+from tools.billing_tools import generate_bill
 
 
 mcp = FastMCP("RetailOps")
 
 
-# ==================================================
-# CUSTOMER
-# ==================================================
+# ==========================================
+# AUTHENTICATION
+# ==========================================
 
 @mcp.tool()
-def mcp_find_customer(mobile: str):
-    """
-    Find a customer using their mobile number.
-    """
-    return find_customer(mobile)
-
-
-@mcp.tool()
-def mcp_get_customer_details(mobile: str):
-    """
-    Retrieve customer details.
-    """
-    return get_customer_details(mobile)
-
-
-@mcp.tool()
-def mcp_get_customer_lifetime_profit(
-    mobile: str
+def mcp_login(
+    username: str,
+    password: str
 ):
     """
-    Retrieve customer's lifetime profit.
+    Authenticate a RetailOps user.
+
+    Must be called before using protected functionality.
     """
-    return get_customer_lifetime_profit(
-        mobile
+
+    return login(username, password)
+
+
+@mcp.tool()
+def mcp_logout(
+    auth_session_id: str
+):
+    """
+    Logout the currently authenticated user.
+    """
+
+    return logout(auth_session_id)
+
+
+@mcp.tool()
+def mcp_get_current_user(
+    auth_session_id: str
+):
+    """
+    Get the currently authenticated user.
+    """
+
+    user = get_authenticated_user(
+        auth_session_id
+    )
+
+    if not user:
+
+        return {
+            "success": False,
+            "message": "Not authenticated."
+        }
+
+    return {
+        "success": True,
+        "user": user
+    }
+
+
+# ==========================================
+# CUSTOMER SESSION
+# ==========================================
+
+@mcp.tool()
+def mcp_start_customer_session(
+    auth_session_id: str,
+    customer_name: str,
+    mobile: str = None,
+    email: str = None
+):
+    """
+    Start a customer session.
+
+    If the customer already exists, mobile identifies them.
+    For a new customer, mobile and email are collected.
+    """
+
+    return start_customer_session(
+        auth_session_id,
+        customer_name,
+        mobile,
+        email
     )
 
 
-# ==================================================
-# PRODUCT
-# ==================================================
-
 @mcp.tool()
-def mcp_search_product(name: str):
-    """
-    Search products by name.
-    """
-    return search_product(name)
-
-
-@mcp.tool()
-def mcp_get_product_price(
-    product_id: int
+def mcp_get_current_customer(
+    auth_session_id: str
 ):
     """
-    Get product selling price.
+    Get the customer currently associated
+    with the authenticated salesperson session.
     """
-    return get_product_price(product_id)
+
+    return get_current_customer_session(
+        auth_session_id
+    )
 
 
 @mcp.tool()
-def mcp_check_stock(product_id: int):
+def mcp_end_customer_session(
+    auth_session_id: str
+):
     """
-    Check product stock availability.
+    End the current customer session.
     """
-    return check_stock(product_id)
+
+    return end_customer_session(
+        auth_session_id
+    )
 
 
-# ==================================================
+# ==========================================
 # CART
-# ==================================================
+# ==========================================
 
 @mcp.tool()
 def mcp_add_to_cart(
-    customer_mobile: str,
+    auth_session_id: str,
     product_id: int,
     quantity: int = 1
 ):
-    """
-    Add a product to the customer's
-    persistent virtual cart.
-    """
     return add_to_cart(
-        customer_mobile,
+        auth_session_id,
         product_id,
         quantity
     )
@@ -119,29 +156,23 @@ def mcp_add_to_cart(
 
 @mcp.tool()
 def mcp_remove_from_cart(
-    customer_mobile: str,
+    auth_session_id: str,
     product_id: int
 ):
-    """
-    Remove a product from the cart.
-    """
     return remove_from_cart(
-        customer_mobile,
+        auth_session_id,
         product_id
     )
 
 
 @mcp.tool()
 def mcp_update_cart_quantity(
-    customer_mobile: str,
+    auth_session_id: str,
     product_id: int,
     quantity: int
 ):
-    """
-    Update product quantity in the cart.
-    """
     return update_cart_quantity(
-        customer_mobile,
+        auth_session_id,
         product_id,
         quantity
     )
@@ -149,59 +180,41 @@ def mcp_update_cart_quantity(
 
 @mcp.tool()
 def mcp_view_cart(
-    customer_mobile: str
+    auth_session_id: str
 ):
-    """
-    View customer's current cart.
-    """
-    return view_cart(customer_mobile)
+    return view_cart(
+        auth_session_id
+    )
 
 
 @mcp.tool()
 def mcp_clear_cart(
-    customer_mobile: str
+    auth_session_id: str
 ):
-    """
-    Clear customer's virtual cart.
-    """
-    return clear_cart(customer_mobile)
+    return clear_cart(
+        auth_session_id
+    )
 
 
-# ==================================================
+# ==========================================
 # BILLING
-# ==================================================
+# ==========================================
 
 @mcp.tool()
 def mcp_generate_bill(
-    customer_mobile: str
+    auth_session_id: str
 ):
-    """
-    Generate the final customer bill.
-
-    Performs:
-    - Customer validation
-    - Cart validation
-    - Stock validation
-    - Price calculation
-    - Profit calculation
-    - Loyalty discount calculation
-    - Delivery eligibility
-    - Order creation
-    - Order item creation
-    - Inventory update
-    - Customer lifetime profit update
-    - Cart checkout
-    """
     return generate_bill(
-        customer_mobile
+        auth_session_id
     )
+
+
+# ==========================================
+# HEALTH
+# ==========================================
 
 @mcp.tool()
 def mcp_health_check():
-    """
-    Check whether RetailOps MCP can connect
-    to the PostgreSQL database.
-    """
 
     from database import pool
 
@@ -212,8 +225,7 @@ def mcp_health_check():
             with conn.cursor() as cur:
 
                 cur.execute("SELECT 1")
-
-                result = cur.fetchone()
+                cur.fetchone()
 
         return {
             "success": True,
@@ -230,9 +242,10 @@ def mcp_health_check():
             "message": str(error)
         }
 
-# ==================================================
-# BUSINESS RULES RESOURCE
-# ==================================================
+
+# ==========================================
+# BUSINESS RULE RESOURCE
+# ==========================================
 
 @mcp.resource("retail://business-rules")
 def get_business_rules():
@@ -256,30 +269,16 @@ def get_business_rules():
         return file.read()
 
 
-# ==================================================
-# DATABASE INITIALIZATION
-# ==================================================
-
-# initialize_database()
-
-# seed_sample_data()
-
-
-# ==================================================
-# START SERVER
-# ==================================================
+# ==========================================
+# SERVER
+# ==========================================
 
 if __name__ == "__main__":
 
-    print("Initializing RetailOps database...")
-
     initialize_database()
-    seed_sample_data()
-
-    print("Starting RetailOps MCP server...")
 
     mcp.run(
         transport="http",
         host="0.0.0.0",
-        port=int(os.getenv("PORT", "8000"))
+        port=8000
     )

@@ -102,3 +102,37 @@ def check_stock(product_id: int):
             "stock": product[2]
         }
     }
+
+
+def get_all_product():
+    with pool.connection() as conn:
+        with conn.cursor() as cur:
+
+            cur.execute("""
+                SELECT
+                    id,
+                    name,
+                    price,
+                    stock,
+                    category
+                FROM products
+                ORDER BY id;
+            """)
+
+            rows = cur.fetchall()
+
+    items = []
+
+    for row in rows:
+        items.append({
+            "product_id": row[0],
+            "name": row[1],
+            "unit_price": float(row[2]),
+            "stock": row[3],
+            "category": row[4]
+        })
+
+    return {
+        "success": True,
+        "products": items
+    }  

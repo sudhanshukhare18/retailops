@@ -14,6 +14,8 @@ pool = ConnectionPool(
 def get_connection():
     return pool.connection()
 
+def close_database():
+    pool.close()
 
 def initialize_database():
 
@@ -21,312 +23,177 @@ def initialize_database():
 
         with conn.cursor() as cur:
 
-            # ==========================================
+            # -------------------------
             # CUSTOMERS
-            # ==========================================
+            # -------------------------
 
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS customers (
-
                     id SERIAL PRIMARY KEY,
-
-                    name VARCHAR(100) NOT NULL,
-
-                    mobile VARCHAR(20)
-                        UNIQUE NOT NULL,
-
-                    email VARCHAR(255) NOT NULL,
-
-                    lifetime_profit NUMERIC(12, 2)
-                        NOT NULL DEFAULT 0,
-
-                    created_at TIMESTAMP
-                        DEFAULT CURRENT_TIMESTAMP
+                    name VARCHAR(150) NOT NULL,
+                    mobile VARCHAR(20) UNIQUE NOT NULL,
+                    email VARCHAR(255),
+                    lifetime_profit NUMERIC(12,2) DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
 
-            # ==========================================
+            # -------------------------
             # PRODUCTS
-            # ==========================================
+            # -------------------------
 
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS products (
-
                     id SERIAL PRIMARY KEY,
-
-                    name VARCHAR(150) NOT NULL,
-
-                    category VARCHAR(100)
-                        NOT NULL,
-
-                    price NUMERIC(12, 2)
-                        NOT NULL,
-
-                    cost_price NUMERIC(12, 2)
-                        NOT NULL,
-
-                    stock INTEGER
-                        NOT NULL DEFAULT 0,
-
-                    created_at TIMESTAMP
-                        DEFAULT CURRENT_TIMESTAMP
+                    name VARCHAR(200) NOT NULL,
+                    category VARCHAR(100),
+                    price NUMERIC(12,2) NOT NULL,
+                    cost_price NUMERIC(12,2) NOT NULL,
+                    stock INTEGER NOT NULL DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
 
-            # ==========================================
+            # -------------------------
             # CARTS
-            # ==========================================
+            # -------------------------
 
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS carts (
-
                     id SERIAL PRIMARY KEY,
-
-                    customer_id INTEGER NOT NULL,
-
-                    status VARCHAR(20)
-                        NOT NULL DEFAULT 'ACTIVE',
-
-                    created_at TIMESTAMP
-                        DEFAULT CURRENT_TIMESTAMP,
-
-                    updated_at TIMESTAMP
-                        DEFAULT CURRENT_TIMESTAMP,
-
-                    CONSTRAINT fk_cart_customer
-
-                        FOREIGN KEY(customer_id)
-                        REFERENCES customers(id)
-
-                        ON DELETE CASCADE
+                    customer_id INTEGER NOT NULL
+                        REFERENCES customers(id),
+                    status VARCHAR(30) NOT NULL DEFAULT 'ACTIVE',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
 
-            # ==========================================
+            # -------------------------
             # CART ITEMS
-            # ==========================================
+            # -------------------------
 
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS cart_items (
-
                     id SERIAL PRIMARY KEY,
-
-                    cart_id INTEGER NOT NULL,
-
-                    product_id INTEGER NOT NULL,
-
-                    quantity INTEGER NOT NULL
-                        CHECK (quantity > 0),
-
-                    CONSTRAINT fk_cart
-
-                        FOREIGN KEY(cart_id)
+                    cart_id INTEGER NOT NULL
                         REFERENCES carts(id)
-
                         ON DELETE CASCADE,
-
-                    CONSTRAINT fk_cart_product
-
-                        FOREIGN KEY(product_id)
-                        REFERENCES products(id)
+                    product_id INTEGER NOT NULL
+                        REFERENCES products(id),
+                    quantity INTEGER NOT NULL CHECK(quantity > 0),
+                    UNIQUE(cart_id, product_id)
                 );
             """)
 
-            # ==========================================
+            # -------------------------
             # ORDERS
-            # ==========================================
+            # -------------------------
 
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS orders (
-
                     id SERIAL PRIMARY KEY,
-
-                    customer_id INTEGER NOT NULL,
-
-                    total_amount NUMERIC(12, 2)
-                        NOT NULL,
-
-                    discount NUMERIC(12, 2)
-                        NOT NULL DEFAULT 0,
-
-                    final_amount NUMERIC(12, 2)
-                        NOT NULL,
-
-                    order_profit NUMERIC(12, 2)
-                        NOT NULL,
-
-                    delivery_status VARCHAR(50)
-                        NOT NULL,
-
-                    created_at TIMESTAMP
-                        DEFAULT CURRENT_TIMESTAMP,
-
-                    CONSTRAINT fk_order_customer
-
-                        FOREIGN KEY(customer_id)
-                        REFERENCES customers(id)
+                    customer_id INTEGER NOT NULL
+                        REFERENCES customers(id),
+                    total_amount NUMERIC(12,2) NOT NULL,
+                    discount NUMERIC(12,2) DEFAULT 0,
+                    final_amount NUMERIC(12,2) NOT NULL,
+                    order_profit NUMERIC(12,2) NOT NULL,
+                    delivery_status VARCHAR(50),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
             """)
 
-            # ==========================================
+            # -------------------------
             # ORDER ITEMS
-            # ==========================================
+            # -------------------------
 
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS order_items (
-
                     id SERIAL PRIMARY KEY,
-
-                    order_id INTEGER NOT NULL,
-
-                    product_id INTEGER NOT NULL,
-
-                    quantity INTEGER NOT NULL,
-
-                    selling_price NUMERIC(12, 2)
-                        NOT NULL,
-
-                    profit NUMERIC(12, 2)
-                        NOT NULL,
-
-                    CONSTRAINT fk_order
-
-                        FOREIGN KEY(order_id)
+                    order_id INTEGER NOT NULL
                         REFERENCES orders(id)
-
                         ON DELETE CASCADE,
-
-                    CONSTRAINT fk_order_product
-
-                        FOREIGN KEY(product_id)
-                        REFERENCES products(id)
+                    product_id INTEGER NOT NULL
+                        REFERENCES products(id),
+                    quantity INTEGER NOT NULL,
+                    selling_price NUMERIC(12,2) NOT NULL,
+                    profit NUMERIC(12,2) NOT NULL
                 );
             """)
 
-            # ==========================================
-            # ACTIVE CART INDEX
-            # ==========================================
+            # -------------------------
+            # USERS
+            # -------------------------
 
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id SERIAL PRIMARY KEY,
+                    username VARCHAR(100) UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    role VARCHAR(30) NOT NULL
+                        CHECK(role IN ('SALESPERSON', 'MANAGER', 'OWNER')),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+
+            # -------------------------
+            # LOGIN SESSIONS
+            # -------------------------
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS auth_sessions (
+                    id UUID PRIMARY KEY,
+                    user_id INTEGER NOT NULL
+                        REFERENCES users(id)
+                        ON DELETE CASCADE,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+
+            # -------------------------
+            # CUSTOMER SESSIONS
+            # -------------------------
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS customer_sessions (
+                    id UUID PRIMARY KEY,
+                    auth_session_id UUID NOT NULL
+                        REFERENCES auth_sessions(id)
+                        ON DELETE CASCADE,
+
+                    customer_id INTEGER NOT NULL
+                        REFERENCES customers(id),
+
+                    cart_id INTEGER NOT NULL
+                        REFERENCES carts(id),
+
+                    status VARCHAR(30) NOT NULL
+                        DEFAULT 'ACTIVE',
+
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    ended_at TIMESTAMP
+                );
+            """)
+
+            # Only one active cart for a customer
             cur.execute("""
                 CREATE UNIQUE INDEX IF NOT EXISTS
                 unique_active_customer_cart
-
                 ON carts(customer_id)
+                WHERE status = 'ACTIVE';
+            """)
 
+            # Only one active customer session per login
+            cur.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS
+                unique_active_customer_session
+                ON customer_sessions(auth_session_id)
                 WHERE status = 'ACTIVE';
             """)
 
         conn.commit()
 
 
-def seed_sample_data():
-
-    with pool.connection() as conn:
-
-        with conn.cursor() as cur:
-
-            # ==========================================
-            # CUSTOMERS
-            # ==========================================
-
-            cur.execute(
-                "SELECT COUNT(*) FROM customers"
-            )
-
-            customer_count = cur.fetchone()[0]
-
-            if customer_count == 0:
-
-                cur.execute("""
-                    INSERT INTO customers
-                    (
-                        name,
-                        mobile,
-                        email,
-                        lifetime_profit
-                    )
-
-                    VALUES
-                    (%s, %s, %s, %s),
-                    (%s, %s, %s, %s),
-                    (%s, %s, %s, %s)
-                """, (
-
-                    "Rahul Sharma",
-                    "9876543210",
-                    "rahul@example.com",
-                    12000,
-
-                    "Aman Verma",
-                    "9123456780",
-                    "aman@example.com",
-                    3500,
-
-                    "Priya Singh",
-                    "9988776655",
-                    "priya@example.com",
-                    8500
-                ))
-
-            # ==========================================
-            # PRODUCTS
-            # ==========================================
-
-            cur.execute(
-                "SELECT COUNT(*) FROM products"
-            )
-
-            product_count = cur.fetchone()[0]
-
-            if product_count == 0:
-
-                cur.execute("""
-                    INSERT INTO products
-                    (
-                        name,
-                        category,
-                        price,
-                        cost_price,
-                        stock
-                    )
-
-                    VALUES
-                    (%s, %s, %s, %s, %s),
-                    (%s, %s, %s, %s, %s),
-                    (%s, %s, %s, %s, %s),
-                    (%s, %s, %s, %s, %s),
-                    (%s, %s, %s, %s, %s)
-                """, (
-
-                    "Samsung 55 inch",
-                    "Television",
-                    55000,
-                    47000,
-                    10,
-
-                    "LG 43 inch",
-                    "Television",
-                    42000,
-                    35000,
-                    8,
-
-                    "Sony Soundbar",
-                    "Audio",
-                    18000,
-                    13000,
-                    6,
-
-                    "Boat Headphones",
-                    "Audio",
-                    2500,
-                    1600,
-                    15,
-
-                    "Samsung Galaxy A55",
-                    "Mobile",
-                    38000,
-                    32000,
-                    12
-                ))
-
-        conn.commit()

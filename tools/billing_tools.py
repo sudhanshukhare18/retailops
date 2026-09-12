@@ -1,36 +1,49 @@
+from decimal import Decimal
 import json
 import os
 
 from database import pool
+from tools.auth_tools import get_authenticated_user
+from tools.session_tools import get_current_customer_session
 
 
-BASE_DIR = os.path.dirname(
-    os.path.dirname(
-        os.path.abspath(__file__)
+def generate_bill(auth_session_id: str):
+
+    user = get_authenticated_user(auth_session_id)
+
+    if not user:
+
+        return {
+            "success": False,
+            "message": "Authentication required."
+        }
+
+    session = get_current_customer_session(auth_session_id)
+
+    if not session["success"]:
+
+        return session
+
+    customer_id = session["customer"]["id"]
+    cart_id = session["cart_id"]
+
+    base_dir = os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
     )
-)
 
-RULES_PATH = os.path.join(
-    BASE_DIR,
-    "resources",
-    "business_rules.json"
-)
-
-
-def load_business_rules():
+    rules_path = os.path.join(
+        base_dir,
+        "resources",
+        "business_rules.json"
+    )
 
     with open(
-        RULES_PATH,
+        rules_path,
         "r",
         encoding="utf-8"
     ) as file:
 
-        return json.load(file)
-
-
-def generate_bill(customer_mobile: str):
-
-    rules = load_business_rules()
+        rules = json.load(file)
 
     with pool.connection() as conn:
 
@@ -38,9 +51,9 @@ def generate_bill(customer_mobile: str):
 
             with conn.cursor() as cur:
 
-                # ======================================
-                # 1. FIND CUSTOMER
-                # ======================================
+                # --------------------------------
+                # LOCK CUSTOMER
+                # --------------------------------
 
                 cur.execute("""
                     SELECT
@@ -50,47 +63,42 @@ def generate_bill(customer_mobile: str):
                         email,
                         lifetime_profit
                     FROM customers
-                    WHERE mobile = %s
+                    WHERE id = %s
                     FOR UPDATE
-                """, (customer_mobile,))
+                """, (customer_id,))
 
                 customer = cur.fetchone()
 
                 if not customer:
 
-                    return {
-                        "success": False,
-                        "message": "Customer not found"
-                    }
+                    raise Exception("Customer not found.")
 
-                customer_id = customer[0]
-
-                # ======================================
-                # 2. FIND ACTIVE CART
-                # ======================================
+                # --------------------------------
+                # LOCK CART
+                # --------------------------------
 
                 cur.execute("""
-                    SELECT id
+                    SELECT id, status
                     FROM carts
-                    WHERE customer_id = %s
-                    AND status = 'ACTIVE'
+                    WHERE id = %s
                     FOR UPDATE
-                """, (customer_id,))
+                """, (cart_id,))
 
                 cart = cur.fetchone()
 
                 if not cart:
 
-                    return {
-                        "success": False,
-                        "message": "No active cart found"
-                    }
+                    raise Exception("Cart not found.")
 
-                cart_id = cart[0]
+                if cart[1] != "ACTIVE":
 
-                # ======================================
-                # 3. GET CART ITEMS
-                # ======================================
+                    raise Exception(
+                        "This cart has already been checked out."
+                    )
+
+                # --------------------------------
+                # LOCK CART ITEMS + PRODUCTS
+                # --------------------------------
 
                 cur.execute("""
                     SELECT
@@ -100,150 +108,108 @@ def generate_bill(customer_mobile: str):
                         p.price,
                         p.cost_price,
                         p.stock
-
                     FROM cart_items ci
-
                     JOIN products p
-                        ON ci.product_id = p.id
-
+                        ON p.id = ci.product_id
                     WHERE ci.cart_id = %s
-
-                    FOR UPDATE
+                    FOR UPDATE OF ci, p
                 """, (cart_id,))
 
-                cart_items = cur.fetchall()
+                items = cur.fetchall()
 
-                if not cart_items:
+                if not items:
 
-                    return {
-                        "success": False,
-                        "message": "Cart is empty"
-                    }
+                    raise Exception(
+                        "Cannot generate bill for an empty cart."
+                    )
 
-                # ======================================
-                # 4. CALCULATE ORDER
-                # ======================================
+                total_amount = Decimal("0")
+                order_profit = Decimal("0")
 
-                items = []
+                bill_items = []
 
-                total_amount = 0
-                order_profit = 0
+                # --------------------------------
+                # CALCULATE
+                # --------------------------------
 
-                for item in cart_items:
+                for item in items:
 
-                    product_id = item[0]
-                    quantity = item[1]
-                    product_name = item[2]
-                    selling_price = float(item[3])
-                    cost_price = float(item[4])
-                    stock = item[5]
+                    (
+                        product_id,
+                        quantity,
+                        name,
+                        price,
+                        cost_price,
+                        stock
+                    ) = item
 
-                    # ------------------------------
-                    # STOCK VALIDATION
-                    # ------------------------------
+                    if stock < quantity:
 
-                    if quantity > stock:
-
-                        raise ValueError(
-                            f"Insufficient stock for "
-                            f"{product_name}. "
+                        raise Exception(
+                            f"Insufficient stock for {name}. "
                             f"Available: {stock}"
                         )
 
-                    item_total = (
-                        selling_price *
-                        quantity
-                    )
+                    item_total = price * quantity
 
                     item_profit = (
-                        selling_price -
-                        cost_price
+                        price - cost_price
                     ) * quantity
 
                     total_amount += item_total
-
                     order_profit += item_profit
 
-                    items.append({
-
+                    bill_items.append({
                         "product_id": product_id,
-
-                        "name": product_name,
-
+                        "name": name,
                         "quantity": quantity,
-
-                        "selling_price":
-                            selling_price,
-
-                        "item_total":
-                            round(item_total, 2),
-
-                        "profit":
-                            round(item_profit, 2)
+                        "selling_price": float(price),
+                        "profit": float(item_profit),
+                        "subtotal": float(item_total)
                     })
 
-                # ======================================
-                # 5. LOYALTY CHECK
-                # ======================================
+                # --------------------------------
+                # LOYALTY
+                # --------------------------------
 
-                lifetime_profit = float(
-                    customer[4]
+                minimum_profit = Decimal(
+                    str(
+                        rules["loyalty_program"]
+                        ["minimum_lifetime_profit"]
+                    )
                 )
 
-                loyalty_enabled = rules[
-                    "loyalty_program"
-                ]["enabled"]
-
-                loyalty_threshold = rules[
-                    "loyalty_program"
-                ]["minimum_lifetime_profit"]
-
-                discount_percentage = rules[
-                    "loyalty_program"
-                ][
-                    "discount_percentage_of_current_order_profit"
-                ]
-
-                loyalty_eligible = (
-                    loyalty_enabled
-                    and
-                    lifetime_profit >=
-                    loyalty_threshold
+                discount_percentage = Decimal(
+                    str(
+                        rules["loyalty_program"]
+                        ["discount_percentage_of_current_order_profit"]
+                    )
                 )
 
-                discount = 0
+                free_delivery_threshold = Decimal(
+                    str(
+                        rules["free_delivery"]
+                        ["minimum_remaining_profit"]
+                    )
+                )
 
-                if loyalty_eligible:
+                lifetime_profit = customer[4]
+
+                discount = Decimal("0")
+
+                if lifetime_profit >= minimum_profit:
 
                     discount = (
                         order_profit *
                         discount_percentage /
-                        100
+                        Decimal("100")
                     )
 
-                # ======================================
-                # 6. REMAINING PROFIT
-                # ======================================
-
                 remaining_profit = (
-                    order_profit -
-                    discount
+                    order_profit - discount
                 )
 
-                # ======================================
-                # 7. DELIVERY
-                # ======================================
-
-                free_delivery_threshold = rules[
-                    "free_delivery"
-                ][
-                    "minimum_remaining_profit"
-                ]
-
-                if (
-                    remaining_profit >=
-                    free_delivery_threshold
-                ):
+                if remaining_profit >= free_delivery_threshold:
 
                     delivery_status = rules[
                         "delivery"
@@ -255,22 +221,21 @@ def generate_bill(customer_mobile: str):
                         "delivery"
                     ]["default_status"]
 
-                # ======================================
-                # 8. FINAL AMOUNT
-                # ======================================
-
                 final_amount = (
-                    total_amount -
-                    discount
+                    total_amount - discount
                 )
 
-                # ======================================
-                # 9. CREATE ORDER
-                # ======================================
+                new_lifetime_profit = (
+                    lifetime_profit +
+                    remaining_profit
+                )
+
+                # --------------------------------
+                # CREATE ORDER
+                # --------------------------------
 
                 cur.execute("""
-                    INSERT INTO orders
-                    (
+                    INSERT INTO orders (
                         customer_id,
                         total_amount,
                         discount,
@@ -278,171 +243,107 @@ def generate_bill(customer_mobile: str):
                         order_profit,
                         delivery_status
                     )
-
-                    VALUES
-                    (%s, %s, %s, %s, %s, %s)
-
+                    VALUES (%s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (
-
                     customer_id,
-
                     total_amount,
-
                     discount,
-
                     final_amount,
-
-                    remaining_profit,
-
+                    order_profit,
                     delivery_status
                 ))
 
                 order_id = cur.fetchone()[0]
 
-                # ======================================
-                # 10. CREATE ORDER ITEMS
-                # ======================================
+                # --------------------------------
+                # CREATE ORDER ITEMS
+                # --------------------------------
 
                 for item in items:
 
+                    (
+                        product_id,
+                        quantity,
+                        name,
+                        price,
+                        cost_price,
+                        stock
+                    ) = item
+
+                    item_profit = (
+                        price - cost_price
+                    ) * quantity
+
                     cur.execute("""
-                        INSERT INTO order_items
-                        (
+                        INSERT INTO order_items (
                             order_id,
                             product_id,
                             quantity,
                             selling_price,
                             profit
                         )
-
-                        VALUES
-                        (%s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s)
                     """, (
-
                         order_id,
-
-                        item["product_id"],
-
-                        item["quantity"],
-
-                        item["selling_price"],
-
-                        item["profit"]
+                        product_id,
+                        quantity,
+                        price,
+                        item_profit
                     ))
 
-                    # ==================================
-                    # UPDATE STOCK
-                    # ==================================
+                    # --------------------------------
+                    # UPDATE INVENTORY
+                    # --------------------------------
 
                     cur.execute("""
                         UPDATE products
-
-                        SET stock =
-                            stock - %s
-
+                        SET stock = stock - %s
                         WHERE id = %s
                     """, (
-
-                        item["quantity"],
-
-                        item["product_id"]
+                        quantity,
+                        product_id
                     ))
 
-                # ======================================
-                # 11. UPDATE CUSTOMER PROFIT
-                # ======================================
+                # --------------------------------
+                # UPDATE CUSTOMER PROFIT
+                # --------------------------------
 
                 cur.execute("""
                     UPDATE customers
-
-                    SET lifetime_profit =
-                        lifetime_profit + %s
-
+                    SET lifetime_profit = %s
                     WHERE id = %s
                 """, (
-
-                    remaining_profit,
-
+                    new_lifetime_profit,
                     customer_id
                 ))
 
-                # ======================================
-                # 12. CLOSE CART
-                # ======================================
+                # --------------------------------
+                # CLOSE CART
+                # --------------------------------
 
                 cur.execute("""
                     UPDATE carts
-
-                    SET status = 'CHECKED_OUT',
-                        updated_at =
-                            CURRENT_TIMESTAMP
-
+                    SET
+                        status = 'CHECKED_OUT',
+                        updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (cart_id,))
 
-                # ======================================
-                # 13. COMMIT EVERYTHING
-                # ======================================
+                # --------------------------------
+                # CLOSE CUSTOMER SESSION
+                # --------------------------------
+
+                cur.execute("""
+                    UPDATE customer_sessions
+                    SET
+                        status = 'COMPLETED',
+                        ended_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                    AND status = 'ACTIVE'
+                """, (auth_session_id,))
 
             conn.commit()
-
-            # ==========================================
-            # RETURN BILL
-            # ==========================================
-
-            return {
-
-                "success": True,
-
-                "order_id": order_id,
-
-                "customer": {
-                    "name": customer[1],
-                    "mobile": customer[2],
-                    "email": customer[3]
-                },
-
-                "items": items,
-
-                "total_amount": round(
-                    total_amount,
-                    2
-                ),
-
-                "order_profit_before_discount":
-                    round(
-                        order_profit,
-                        2
-                    ),
-
-                "loyalty_eligible":
-                    loyalty_eligible,
-
-                "loyalty_discount":
-                    round(
-                        discount,
-                        2
-                    ),
-
-                "remaining_profit":
-                    round(
-                        remaining_profit,
-                        2
-                    ),
-
-                "final_amount":
-                    round(
-                        final_amount,
-                        2
-                    ),
-
-                "delivery_status":
-                    delivery_status,
-
-                "message":
-                    "Bill generated successfully"
-            }
 
         except Exception as error:
 
@@ -452,3 +353,39 @@ def generate_bill(customer_mobile: str):
                 "success": False,
                 "message": str(error)
             }
+
+    return {
+        "success": True,
+        "message": "Bill generated successfully.",
+
+        "order_id": order_id,
+
+        "customer": {
+            "id": customer[0],
+            "name": customer[1],
+            "mobile": customer[2],
+            "email": customer[3]
+        },
+
+        "items": bill_items,
+
+        "total_amount": float(total_amount),
+
+        "order_profit": float(order_profit),
+
+        "loyalty_discount": float(discount),
+
+        "remaining_profit": float(
+            remaining_profit
+        ),
+
+        "final_amount": float(final_amount),
+
+        "delivery_status": delivery_status,
+
+        "updated_lifetime_profit": float(
+            new_lifetime_profit
+        ),
+
+        "cart_status": "CHECKED_OUT"
+    }
