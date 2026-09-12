@@ -3,6 +3,7 @@ import os
 from fastmcp import FastMCP
 
 from database import initialize_database
+from tools.template_tools import register_template_resources
 
 from tools.auth_tools import (
     login,
@@ -36,7 +37,7 @@ from tools.billing_tools import generate_bill
 
 mcp = FastMCP("RetailOps")
 
-
+register_template_resources(mcp)
 # ==========================================
 # AUTHENTICATION
 # ==========================================

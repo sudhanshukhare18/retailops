@@ -1,0 +1,196 @@
+
+{
+    "communication_policy": {
+        "description": "Rules governing the secure, professional, and appropriate use of customer-facing and internal business communications.",
+
+        "customer_facing": {
+            "allowed": [
+                "customer_name",
+                "order_id",
+                "order_date",
+                "purchased_items",
+                "quantity",
+                "selling_price",
+                "subtotal",
+                "discount",
+                "final_amount",
+                "delivery_status",
+                "customer_loyalty_benefit"
+            ],
+
+            "forbidden": [
+                "cost_price",
+                "order_profit",
+                "lifetime_profit",
+                "profit_margin",
+                "remaining_profit",
+                "supplier_cost",
+                "internal_inventory_valuation",
+                "business_revenue",
+                "business_wide_profit",
+                "employee_performance",
+                "internal_business_metrics"
+            ],
+
+            "rule": "Customer-facing communications must contain only information that is appropriate for the customer to receive. Internal business, cost, profitability, supplier, employee, management, inventory valuation, and other confidential business information must never be disclosed to customers, regardless of the communication channel or request."
+        },
+
+        "internal": {
+            "allowed": [
+                "product_name",
+                "stock",
+                "cost_price",
+                "selling_price",
+                "order_profit",
+                "lifetime_profit",
+                "profit_margin",
+                "revenue",
+                "supplier_information",
+                "employee_performance",
+                "business_analytics"
+            ],
+
+            "rule": "Internal business information may be accessed and used only for legitimate and authorized business operations. Confidential information must not be included in customer-facing communications."
+        }
+    },
+
+    "templates": {
+
+        "customer_bill": {
+            "name": "Customer Bill Email",
+            "audience": "customer",
+
+            "subject": "Your RetailOps Bill - Order {{order_id}}",
+
+            "body": [
+                "Dear {{customer_name}},",
+                "",
+                "Thank you very much for choosing RetailOps. We sincerely appreciate your business and are grateful for the opportunity to serve you.",
+                "",
+                "We are pleased to confirm that your order has been successfully processed. Please find the relevant order details below for your reference:",
+                "",
+                "Order ID: {{order_id}}",
+                "Order Date: {{order_date}}",
+                "Total Amount: ₹{{final_amount}}",
+                "Delivery Status: {{delivery_status}}",
+                "",
+                "Your detailed bill is attached to this email for your records.",
+                "",
+                "We hope you are satisfied with your purchase and have a pleasant experience with RetailOps. Your trust and continued support are extremely valuable to us.",
+                "",
+                "Should you have any questions or require assistance regarding your order, please feel free to contact us.",
+                "",
+                "Thank you once again for choosing RetailOps.",
+                "",
+                "With sincere gratitude,",
+                "RetailOps Team"
+            ]
+        },
+
+        "order_confirmation": {
+            "name": "Order Confirmation",
+            "audience": "customer",
+
+            "subject": "Order Confirmation - {{order_id}}",
+
+            "body": [
+                "Dear {{customer_name}},",
+                "",
+                "We are pleased to inform you that your order has been successfully confirmed.",
+                "",
+                "Order ID: {{order_id}}",
+                "Order Amount: ₹{{final_amount}}",
+                "Delivery Status: {{delivery_status}}",
+                "",
+                "Thank you for choosing RetailOps and placing your trust in us. We sincerely appreciate your business and will make every effort to provide you with a smooth and satisfactory experience.",
+                "",
+                "We hope you enjoy your purchase and look forward to serving you again in the future.",
+                "",
+                "If you require any assistance regarding your order, please feel free to contact us.",
+                "",
+                "Thank you once again for your valuable support.",
+                "",
+                "With sincere appreciation,",
+                "RetailOps Team"
+            ]
+        },
+
+        "loyalty_customer": {
+            "name": "Customer Loyalty Message",
+            "audience": "customer",
+
+            "subject": "A Special Thank You from RetailOps",
+
+            "body": [
+                "Dear {{customer_name}},",
+                "",
+                "We would like to sincerely thank you for your continued trust and support of RetailOps.",
+                "",
+                "As a token of our appreciation, you have received a loyalty benefit of ₹{{discount}} on your recent order.",
+                "",
+                "We genuinely value your continued association with us. Your support encourages us to continuously improve our products, services, and overall customer experience.",
+                "",
+                "We hope you enjoy your purchase and look forward to welcoming you back to RetailOps in the future.",
+                "",
+                "Thank you once again for being a valued customer.",
+                "",
+                "With sincere gratitude,",
+                "RetailOps Team"
+            ]
+        },
+
+        "low_stock_alert": {
+            "name": "Low Stock Alert",
+            "audience": "internal",
+
+            "subject": "Action Required: Low Stock Alert - {{product_name}}",
+
+            "body": [
+                "Dear Team,",
+                "",
+                "This is an automated inventory notification from RetailOps.",
+                "",
+                "The stock level of the following product has fallen below the recommended threshold:",
+                "",
+                "Product Name: {{product_name}}",
+                "Current Stock: {{stock}}",
+                "",
+                "Please review the current inventory level and consider placing a reorder at the earliest appropriate opportunity to maintain adequate product availability.",
+                "",
+                "Timely action will help prevent potential stock shortages and ensure smooth business operations.",
+                "",
+                "Thank you for your prompt attention to this matter.",
+                "",
+                "Regards,",
+                "RetailOps Inventory Management"
+            ]
+        },
+
+        "task_escalation": {
+            "name": "Task Escalation",
+            "audience": "internal",
+
+            "subject": "Action Required: Task Awaiting Approval - {{task_title}}",
+
+            "body": [
+                "Dear Team,",
+                "",
+                "This is an automated notification from RetailOps informing you that the following task requires your review and approval:",
+                "",
+                "Task: {{task_title}}",
+                "Priority: {{priority}}",
+                "Created By: {{created_by}}",
+                "",
+                "Please review the task details and take the appropriate action at your earliest convenience.",
+                "",
+                "Your timely review will help ensure that the task progresses efficiently and that any required business decisions are addressed without unnecessary delay.",
+                "",
+                "Thank you for your attention and prompt action.",
+                "",
+                "Regards,",
+                "RetailOps Operations Team"
+            ]
+        }
+    }
+}
+
