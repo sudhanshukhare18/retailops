@@ -16,12 +16,9 @@ def get_current_user(auth_session_id):
                     u.id,
                     u.username,
                     u.role
-
                 FROM auth_sessions a
-
                 JOIN users u
                     ON u.id = a.user_id
-
                 WHERE a.id = %s
                   AND a.is_active = TRUE
             """, (
@@ -30,11 +27,8 @@ def get_current_user(auth_session_id):
 
             user = cur.fetchone()
 
-
     if not user:
-
         return None
-
 
     return {
         "id": user[0],
@@ -57,11 +51,6 @@ def create_task(
 
     priority = priority.upper()
 
-
-    # --------------------------------------------------------
-    # Validate priority
-    # --------------------------------------------------------
-
     if priority not in [
         "LOW",
         "MEDIUM",
@@ -74,15 +63,9 @@ def create_task(
             "message": "Invalid priority."
         }
 
-
-    # --------------------------------------------------------
-    # Authentication
-    # --------------------------------------------------------
-
     user = get_current_user(
         auth_session_id
     )
-
 
     if not user:
 
@@ -90,11 +73,6 @@ def create_task(
             "success": False,
             "message": "Authentication required."
         }
-
-
-    # --------------------------------------------------------
-    # Role check
-    # --------------------------------------------------------
 
     if user["role"] != "MANAGER":
 
@@ -107,22 +85,12 @@ def create_task(
             )
         }
 
-
-    # --------------------------------------------------------
-    # Validate title
-    # --------------------------------------------------------
-
     if not title or not title.strip():
 
         return {
             "success": False,
             "message": "Task title cannot be empty."
         }
-
-
-    # --------------------------------------------------------
-    # Create task
-    # --------------------------------------------------------
 
     with pool.connection() as conn:
 
@@ -136,7 +104,6 @@ def create_task(
                     priority,
                     status
                 )
-
                 VALUES (
                     %s,
                     %s,
@@ -144,55 +111,35 @@ def create_task(
                     %s,
                     'PENDING_APPROVAL'
                 )
-
-                RETURNING
-                    id,
-                    created_at
+                RETURNING id, created_at
             """, (
                 title.strip(),
                 description.strip()
-                    if description
-                    else "",
+                if description
+                else "",
                 user["id"],
                 priority
             ))
 
             task = cur.fetchone()
 
-
         conn.commit()
 
-
     return {
-
         "success": True,
-
-        "message":
-            "Task created successfully.",
-
+        "message": "Task created successfully.",
         "task": {
-
             "id": task[0],
-
-            "title":
-                title.strip(),
-
-            "description":
+            "title": title.strip(),
+            "description": (
                 description.strip()
                 if description
-                else "",
-
-            "priority":
-                priority,
-
-            "status":
-                "PENDING_APPROVAL",
-
-            "created_by":
-                user["username"],
-
-            "created_at":
-                task[1].isoformat()
+                else ""
+            ),
+            "priority": priority,
+            "status": "PENDING_APPROVAL",
+            "created_by": user["username"],
+            "created_at": task[1].isoformat()
         }
     }
 
@@ -202,14 +149,11 @@ def create_task(
 # MANAGER / OWNER
 # ============================================================
 
-def get_pending_tasks(
-    auth_session_id
-):
+def get_pending_tasks(auth_session_id):
 
     user = get_current_user(
         auth_session_id
     )
-
 
     if not user:
 
@@ -217,7 +161,6 @@ def get_pending_tasks(
             "success": False,
             "message": "Authentication required."
         }
-
 
     if user["role"] not in [
         "MANAGER",
@@ -228,7 +171,6 @@ def get_pending_tasks(
             "success": False,
             "message": "Permission denied."
         }
-
 
     with pool.connection() as conn:
 
@@ -244,15 +186,10 @@ def get_pending_tasks(
                     t.status,
                     t.owner_comment,
                     t.created_at
-
                 FROM tasks t
-
                 JOIN users u
                     ON u.id = t.created_by
-
-                WHERE t.status =
-                    'PENDING_APPROVAL'
-
+                WHERE t.status = 'PENDING_APPROVAL'
                 ORDER BY
                     CASE t.priority
                         WHEN 'URGENT' THEN 1
@@ -260,55 +197,30 @@ def get_pending_tasks(
                         WHEN 'MEDIUM' THEN 3
                         WHEN 'LOW' THEN 4
                     END,
-
                     t.created_at ASC
             """)
 
             rows = cur.fetchall()
 
-
     tasks = []
-
 
     for row in rows:
 
         tasks.append({
-
-            "id":
-                row[0],
-
-            "title":
-                row[1],
-
-            "description":
-                row[2],
-
-            "created_by":
-                row[3],
-
-            "priority":
-                row[4],
-
-            "status":
-                row[5],
-
-            "owner_comment":
-                row[6],
-
-            "created_at":
-                row[7].isoformat()
+            "id": row[0],
+            "title": row[1],
+            "description": row[2],
+            "created_by": row[3],
+            "priority": row[4],
+            "status": row[5],
+            "owner_comment": row[6],
+            "created_at": row[7].isoformat()
         })
 
-
     return {
-
         "success": True,
-
-        "pending_count":
-            len(tasks),
-
-        "tasks":
-            tasks
+        "pending_count": len(tasks),
+        "tasks": tasks
     }
 
 
@@ -327,14 +239,12 @@ def approve_task(
         auth_session_id
     )
 
-
     if not user:
 
         return {
             "success": False,
             "message": "Authentication required."
         }
-
 
     if user["role"] != "OWNER":
 
@@ -346,30 +256,19 @@ def approve_task(
             )
         }
 
-
     with pool.connection() as conn:
 
         with conn.cursor() as cur:
 
             cur.execute("""
                 UPDATE tasks
-
                 SET
                     status = 'APPROVED',
-
                     owner_comment = %s,
-
-                    updated_at =
-                        CURRENT_TIMESTAMP,
-
-                    approved_at =
-                        CURRENT_TIMESTAMP
-
+                    updated_at = CURRENT_TIMESTAMP,
+                    approved_at = CURRENT_TIMESTAMP
                 WHERE id = %s
-
-                  AND status =
-                      'PENDING_APPROVAL'
-
+                  AND status = 'PENDING_APPROVAL'
                 RETURNING id
             """, (
                 owner_comment.strip()
@@ -379,7 +278,6 @@ def approve_task(
             ))
 
             result = cur.fetchone()
-
 
             if not result:
 
@@ -394,25 +292,14 @@ def approve_task(
                     )
                 }
 
-
         conn.commit()
 
-
     return {
-
         "success": True,
-
-        "message":
-            "Task approved successfully.",
-
-        "task_id":
-            task_id,
-
-        "status":
-            "APPROVED",
-
-        "owner_comment":
-            owner_comment
+        "message": "Task approved successfully.",
+        "task_id": task_id,
+        "status": "APPROVED",
+        "owner_comment": owner_comment
     }
 
 
@@ -431,14 +318,12 @@ def reject_task(
         auth_session_id
     )
 
-
     if not user:
 
         return {
             "success": False,
             "message": "Authentication required."
         }
-
 
     if user["role"] != "OWNER":
 
@@ -450,7 +335,6 @@ def reject_task(
             )
         }
 
-
     if not owner_comment or not owner_comment.strip():
 
         return {
@@ -460,27 +344,18 @@ def reject_task(
             )
         }
 
-
     with pool.connection() as conn:
 
         with conn.cursor() as cur:
 
             cur.execute("""
                 UPDATE tasks
-
                 SET
                     status = 'REJECTED',
-
                     owner_comment = %s,
-
-                    updated_at =
-                        CURRENT_TIMESTAMP
-
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
-
-                  AND status =
-                      'PENDING_APPROVAL'
-
+                  AND status = 'PENDING_APPROVAL'
                 RETURNING id
             """, (
                 owner_comment.strip(),
@@ -488,7 +363,6 @@ def reject_task(
             ))
 
             result = cur.fetchone()
-
 
             if not result:
 
@@ -503,25 +377,14 @@ def reject_task(
                     )
                 }
 
-
         conn.commit()
 
-
     return {
-
         "success": True,
-
-        "message":
-            "Task rejected successfully.",
-
-        "task_id":
-            task_id,
-
-        "status":
-            "REJECTED",
-
-        "owner_comment":
-            owner_comment.strip()
+        "message": "Task rejected successfully.",
+        "task_id": task_id,
+        "status": "REJECTED",
+        "owner_comment": owner_comment.strip()
     }
 
 
@@ -539,14 +402,12 @@ def complete_task(
         auth_session_id
     )
 
-
     if not user:
 
         return {
             "success": False,
             "message": "Authentication required."
         }
-
 
     if user["role"] not in [
         "MANAGER",
@@ -558,32 +419,23 @@ def complete_task(
             "message": "Permission denied."
         }
 
-
     with pool.connection() as conn:
 
         with conn.cursor() as cur:
 
             cur.execute("""
                 UPDATE tasks
-
                 SET
                     status = 'COMPLETED',
-
-                    updated_at =
-                        CURRENT_TIMESTAMP
-
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE id = %s
-
-                  AND status =
-                      'APPROVED'
-
+                  AND status = 'APPROVED'
                 RETURNING id
             """, (
                 task_id,
             ))
 
             result = cur.fetchone()
-
 
             if not result:
 
@@ -597,22 +449,13 @@ def complete_task(
                     )
                 }
 
-
         conn.commit()
 
-
     return {
-
         "success": True,
-
-        "message":
-            "Task completed successfully.",
-
-        "task_id":
-            task_id,
-
-        "status":
-            "COMPLETED"
+        "message": "Task completed successfully.",
+        "task_id": task_id,
+        "status": "COMPLETED"
     }
 
 
@@ -629,14 +472,12 @@ def check_pending_task_alert(
         auth_session_id
     )
 
-
     if not user:
 
         return {
             "success": False,
             "message": "Authentication required."
         }
-
 
     if user["role"] != "OWNER":
 
@@ -645,9 +486,7 @@ def check_pending_task_alert(
             "message": "Permission denied."
         }
 
-
     threshold = 5
-
 
     with pool.connection() as conn:
 
@@ -655,34 +494,18 @@ def check_pending_task_alert(
 
             cur.execute("""
                 SELECT COUNT(*)
-
                 FROM tasks
-
-                WHERE status =
-                    'PENDING_APPROVAL'
+                WHERE status = 'PENDING_APPROVAL'
             """)
 
             pending_count = cur.fetchone()[0]
 
-
-    alert_required = (
-        pending_count > threshold
-    )
-
-
     return {
-
         "success": True,
-
-        "alert_required":
-            alert_required,
-
-        "pending_count":
-            pending_count,
-
-        "threshold":
-            threshold,
-
-        "owner_email":
-            "sudhanshukhare021@gmail.com"
+        "alert_required": (
+            pending_count > threshold
+        ),
+        "pending_count": pending_count,
+        "threshold": threshold,
+        "owner_email": "sudhanshukhare021@gmail.com"
     }

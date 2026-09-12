@@ -54,14 +54,18 @@ from tools.task_tools import (
 # MCP SERVER
 # ============================================================
 
-mcp = FastMCP("RetailOps")
+mcp = FastMCP(
+    "RetailOps"
+)
 
 
 # ============================================================
-# COMMUNICATION TEMPLATE RESOURCES
+# COMMUNICATION RESOURCES
 # ============================================================
 
-register_template_resources(mcp)
+register_template_resources(
+    mcp
+)
 
 
 # ============================================================
@@ -73,11 +77,6 @@ def mcp_login(
     username: str,
     password: str
 ):
-    """
-    Authenticate a RetailOps user.
-
-    Must be called before protected functionality.
-    """
 
     return login(
         username,
@@ -89,9 +88,6 @@ def mcp_login(
 def mcp_logout(
     auth_session_id: str
 ):
-    """
-    Logout the authenticated user.
-    """
 
     return logout(
         auth_session_id
@@ -102,10 +98,6 @@ def mcp_logout(
 def mcp_get_current_user(
     auth_session_id: str
 ):
-    """
-    Get the currently authenticated user
-    and their role.
-    """
 
     user = get_authenticated_user(
         auth_session_id
@@ -137,9 +129,6 @@ def mcp_start_customer_session(
     mobile: str = None,
     email: str = None
 ):
-    """
-    Start a customer shopping session.
-    """
 
     return start_customer_session(
         auth_session_id,
@@ -153,10 +142,6 @@ def mcp_start_customer_session(
 def mcp_get_current_customer(
     auth_session_id: str
 ):
-    """
-    Get the customer currently associated
-    with the authenticated salesperson session.
-    """
 
     return get_current_customer_session(
         auth_session_id
@@ -167,9 +152,6 @@ def mcp_get_current_customer(
 def mcp_end_customer_session(
     auth_session_id: str
 ):
-    """
-    End the current customer session.
-    """
 
     return end_customer_session(
         auth_session_id
@@ -184,9 +166,6 @@ def mcp_end_customer_session(
 def mcp_search_product(
     name: str
 ):
-    """
-    Search products by name.
-    """
 
     return search_product(
         name
@@ -197,9 +176,6 @@ def mcp_search_product(
 def mcp_find_product(
     name: str
 ):
-    """
-    Find a product using its natural name.
-    """
 
     return find_product_by_name(
         name
@@ -210,9 +186,6 @@ def mcp_find_product(
 def mcp_get_product_price(
     product_id: int
 ):
-    """
-    Get the selling price of a product.
-    """
 
     return get_product_price(
         product_id
@@ -223,9 +196,6 @@ def mcp_get_product_price(
 def mcp_check_stock(
     product_id: int
 ):
-    """
-    Check current product stock.
-    """
 
     return check_stock(
         product_id
@@ -234,9 +204,6 @@ def mcp_check_stock(
 
 @mcp.tool()
 def mcp_get_all_products():
-    """
-    Get all products.
-    """
 
     return get_all_product()
 
@@ -251,10 +218,6 @@ def mcp_add_to_cart(
     product_name: str,
     quantity: int = 1
 ):
-    """
-    Add a product to the current customer's
-    cart using the natural product name.
-    """
 
     return add_to_cart(
         auth_session_id,
@@ -268,9 +231,6 @@ def mcp_remove_from_cart(
     auth_session_id: str,
     product_id: int
 ):
-    """
-    Remove a product from the current cart.
-    """
 
     return remove_from_cart(
         auth_session_id,
@@ -284,9 +244,6 @@ def mcp_update_cart_quantity(
     product_id: int,
     quantity: int
 ):
-    """
-    Update cart quantity.
-    """
 
     return update_cart_quantity(
         auth_session_id,
@@ -299,9 +256,6 @@ def mcp_update_cart_quantity(
 def mcp_view_cart(
     auth_session_id: str
 ):
-    """
-    View the current customer's cart.
-    """
 
     return view_cart(
         auth_session_id
@@ -312,9 +266,6 @@ def mcp_view_cart(
 def mcp_clear_cart(
     auth_session_id: str
 ):
-    """
-    Clear the current cart.
-    """
 
     return clear_cart(
         auth_session_id
@@ -329,9 +280,6 @@ def mcp_clear_cart(
 def mcp_generate_bill(
     auth_session_id: str
 ):
-    """
-    Generate a bill for the current customer's cart.
-    """
 
     return generate_bill(
         auth_session_id
@@ -339,7 +287,8 @@ def mcp_generate_bill(
 
 
 # ============================================================
-# MANAGER → OWNER TASK MANAGEMENT
+# MANAGER → OWNER
+# TASK MANAGEMENT
 # ============================================================
 
 @mcp.tool()
@@ -349,12 +298,6 @@ def mcp_create_task(
     description: str,
     priority: str = "MEDIUM"
 ):
-    """
-    Manager creates a task requiring owner approval.
-
-    Allowed role:
-    MANAGER
-    """
 
     return create_task(
         auth_session_id,
@@ -368,13 +311,6 @@ def mcp_create_task(
 def mcp_get_pending_tasks(
     auth_session_id: str
 ):
-    """
-    Get tasks currently waiting for owner approval.
-
-    Allowed roles:
-    MANAGER
-    OWNER
-    """
 
     return get_pending_tasks(
         auth_session_id
@@ -387,12 +323,6 @@ def mcp_approve_task(
     task_id: int,
     owner_comment: str = ""
 ):
-    """
-    Approve a pending manager task.
-
-    Allowed role:
-    OWNER
-    """
 
     return approve_task(
         auth_session_id,
@@ -407,14 +337,6 @@ def mcp_reject_task(
     task_id: int,
     owner_comment: str
 ):
-    """
-    Reject a pending manager task.
-
-    A rejection reason is required.
-
-    Allowed role:
-    OWNER
-    """
 
     return reject_task(
         auth_session_id,
@@ -428,13 +350,6 @@ def mcp_complete_task(
     auth_session_id: str,
     task_id: int
 ):
-    """
-    Mark an approved task as completed.
-
-    Allowed roles:
-    MANAGER
-    OWNER
-    """
 
     return complete_task(
         auth_session_id,
@@ -446,16 +361,6 @@ def mcp_complete_task(
 def mcp_check_pending_task_alert(
     auth_session_id: str
 ):
-    """
-    Check whether pending approval tasks
-    have exceeded the owner alert threshold.
-
-    The tool only detects the condition.
-    Claude's Email Connector handles email delivery.
-
-    Allowed role:
-    OWNER
-    """
 
     return check_pending_task_alert(
         auth_session_id
@@ -486,7 +391,8 @@ def mcp_health_check():
 
         return {
 
-            "success": True,
+            "success":
+                True,
 
             "database":
                 "PostgreSQL",
@@ -500,7 +406,8 @@ def mcp_health_check():
 
         return {
 
-            "success": False,
+            "success":
+                False,
 
             "database":
                 "PostgreSQL",
@@ -514,7 +421,7 @@ def mcp_health_check():
 
 
 # ============================================================
-# BUSINESS RULE RESOURCE
+# BUSINESS RULES RESOURCE
 # ============================================================
 
 @mcp.resource(

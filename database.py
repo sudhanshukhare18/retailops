@@ -19,7 +19,6 @@ pool = ConnectionPool(
 # ============================================================
 
 def get_connection():
-
     return pool.connection()
 
 
@@ -28,7 +27,6 @@ def get_connection():
 # ============================================================
 
 def close_database():
-
     pool.close()
 
 
@@ -65,7 +63,6 @@ def initialize_database():
                 );
             """)
 
-
             # ==================================================
             # PRODUCTS
             # ==================================================
@@ -90,7 +87,6 @@ def initialize_database():
                 );
             """)
 
-
             # ==================================================
             # CARTS
             # ==================================================
@@ -114,7 +110,6 @@ def initialize_database():
                 );
             """)
 
-
             # ==================================================
             # CART ITEMS
             # ==================================================
@@ -137,7 +132,6 @@ def initialize_database():
                     UNIQUE(cart_id, product_id)
                 );
             """)
-
 
             # ==================================================
             # ORDERS
@@ -167,7 +161,6 @@ def initialize_database():
                 );
             """)
 
-
             # ==================================================
             # ORDER ITEMS
             # ==================================================
@@ -191,7 +184,6 @@ def initialize_database():
                     profit NUMERIC(12,2) NOT NULL
                 );
             """)
-
 
             # ==================================================
             # USERS
@@ -221,7 +213,6 @@ def initialize_database():
                 );
             """)
 
-
             # ==================================================
             # AUTH SESSIONS
             # ==================================================
@@ -245,7 +236,6 @@ def initialize_database():
                         DEFAULT CURRENT_TIMESTAMP
                 );
             """)
-
 
             # ==================================================
             # CUSTOMER SESSIONS
@@ -275,7 +265,6 @@ def initialize_database():
                     ended_at TIMESTAMP
                 );
             """)
-
 
             # ==================================================
             # TASKS
@@ -312,7 +301,6 @@ def initialize_database():
                 );
             """)
 
-
             # ==================================================
             # TASK STATUS CONSTRAINT
             # ==================================================
@@ -335,7 +323,6 @@ def initialize_database():
                     )
                 );
             """)
-
 
             # ==================================================
             # TASK PRIORITY CONSTRAINT
@@ -360,7 +347,6 @@ def initialize_database():
                 );
             """)
 
-
             # ==================================================
             # UNIQUE ACTIVE CART
             # ==================================================
@@ -373,7 +359,6 @@ def initialize_database():
 
                 WHERE status = 'ACTIVE';
             """)
-
 
             # ==================================================
             # UNIQUE ACTIVE CUSTOMER SESSION
@@ -388,9 +373,8 @@ def initialize_database():
                 WHERE status = 'ACTIVE';
             """)
 
-
             # ==================================================
-            # INDEX FOR PENDING TASKS
+            # PENDING TASK INDEX
             # ==================================================
 
             cur.execute("""
@@ -401,6 +385,5 @@ def initialize_database():
 
                 WHERE status = 'PENDING_APPROVAL';
             """)
-
 
         conn.commit()
