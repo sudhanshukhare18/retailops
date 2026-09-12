@@ -4,10 +4,7 @@ from fastmcp import FastMCP
 
 from database import initialize_database
 
-from tools.template_tools import (
-    register_template_resources,
-    register_template
-)
+from tools.template_tools import register_template_resources
 
 from tools.auth_tools import (
     login,
@@ -40,6 +37,10 @@ from tools.product_tools import (
 from tools.billing_tools import generate_bill
 
 
+# ==========================================
+# MCP SERVER
+# ==========================================
+
 mcp = FastMCP("RetailOps")
 
 
@@ -48,7 +49,6 @@ mcp = FastMCP("RetailOps")
 # ==========================================
 
 register_template_resources(mcp)
-register_template(mcp)
 
 
 # ==========================================
