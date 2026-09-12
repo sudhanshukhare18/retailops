@@ -3,7 +3,11 @@ import os
 from fastmcp import FastMCP
 
 from database import initialize_database
-from tools.template_tools import register_template_resources
+
+from tools.template_tools import (
+    register_template_resources,
+    register_template
+)
 
 from tools.auth_tools import (
     login,
@@ -24,6 +28,7 @@ from tools.cart_tools import (
     view_cart,
     clear_cart
 )
+
 from tools.product_tools import (
     search_product,
     find_product_by_name,
@@ -37,7 +42,15 @@ from tools.billing_tools import generate_bill
 
 mcp = FastMCP("RetailOps")
 
+
+# ==========================================
+# COMMUNICATION TEMPLATES
+# ==========================================
+
 register_template_resources(mcp)
+register_template(mcp)
+
+
 # ==========================================
 # AUTHENTICATION
 # ==========================================
@@ -52,7 +65,6 @@ def mcp_login(
 
     Must be called before using protected functionality.
     """
-
     return login(username, password)
 
 
@@ -63,7 +75,6 @@ def mcp_logout(
     """
     Logout the currently authenticated user.
     """
-
     return logout(auth_session_id)
 
 
@@ -75,12 +86,9 @@ def mcp_get_current_user(
     Get the currently authenticated user.
     """
 
-    user = get_authenticated_user(
-        auth_session_id
-    )
+    user = get_authenticated_user(auth_session_id)
 
     if not user:
-
         return {
             "success": False,
             "message": "Not authenticated."
@@ -145,8 +153,6 @@ def mcp_end_customer_session(
     )
 
 
-
-
 # ==========================================
 # PRODUCT
 # ==========================================
@@ -157,11 +163,7 @@ def mcp_search_product(
 ):
     """
     Search products by name.
-
-    Use this when the salesperson wants to
-    browse or search available products.
     """
-
     return search_product(name)
 
 
@@ -171,11 +173,7 @@ def mcp_find_product(
 ):
     """
     Find a product by its natural name.
-
-    This resolves the product name to its
-    internal database product ID.
     """
-
     return find_product_by_name(name)
 
 
@@ -183,6 +181,9 @@ def mcp_find_product(
 def mcp_get_product_price(
     product_id: int
 ):
+    """
+    Get the selling price of a product.
+    """
     return get_product_price(product_id)
 
 
@@ -190,11 +191,17 @@ def mcp_get_product_price(
 def mcp_check_stock(
     product_id: int
 ):
+    """
+    Check current stock of a product.
+    """
     return check_stock(product_id)
 
 
 @mcp.tool()
 def mcp_get_all_products():
+    """
+    Get all products.
+    """
     return get_all_product()
 
 
@@ -202,7 +209,6 @@ def mcp_get_all_products():
 # CART
 # ==========================================
 
-@mcp.tool()
 @mcp.tool()
 def mcp_add_to_cart(
     auth_session_id: str,
@@ -212,9 +218,6 @@ def mcp_add_to_cart(
     """
     Add a product to the current customer's cart
     using the product name.
-
-    The product ID is automatically found from
-    the PostgreSQL products table.
     """
 
     return add_to_cart(
@@ -222,11 +225,17 @@ def mcp_add_to_cart(
         product_name,
         quantity
     )
+
+
 @mcp.tool()
 def mcp_remove_from_cart(
     auth_session_id: str,
     product_id: int
 ):
+    """
+    Remove a product from the current customer's cart.
+    """
+
     return remove_from_cart(
         auth_session_id,
         product_id
@@ -239,6 +248,10 @@ def mcp_update_cart_quantity(
     product_id: int,
     quantity: int
 ):
+    """
+    Update the quantity of a product in the cart.
+    """
+
     return update_cart_quantity(
         auth_session_id,
         product_id,
@@ -250,6 +263,10 @@ def mcp_update_cart_quantity(
 def mcp_view_cart(
     auth_session_id: str
 ):
+    """
+    View the current customer's cart.
+    """
+
     return view_cart(
         auth_session_id
     )
@@ -259,6 +276,10 @@ def mcp_view_cart(
 def mcp_clear_cart(
     auth_session_id: str
 ):
+    """
+    Clear the current customer's cart.
+    """
+
     return clear_cart(
         auth_session_id
     )
@@ -272,6 +293,10 @@ def mcp_clear_cart(
 def mcp_generate_bill(
     auth_session_id: str
 ):
+    """
+    Generate the bill for the current customer's cart.
+    """
+
     return generate_bill(
         auth_session_id
     )
