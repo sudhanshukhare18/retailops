@@ -14,7 +14,6 @@ def start_customer_session(
     user = get_authenticated_user(auth_session_id)
 
     if not user:
-
         return {
             "success": False,
             "message": "Authentication required."
@@ -25,7 +24,6 @@ def start_customer_session(
         "MANAGER",
         "OWNER"
     ]:
-
         return {
             "success": False,
             "message": "You do not have permission."
@@ -137,7 +135,7 @@ def start_customer_session(
                     )
                     VALUES (%s, 'ACTIVE')
                     RETURNING id
-                """)
+                """, (customer_id,))
 
                 cart_id = cur.fetchone()[0]
 
@@ -191,7 +189,6 @@ def get_current_customer_session(auth_session_id: str):
     user = get_authenticated_user(auth_session_id)
 
     if not user:
-
         return {
             "success": False,
             "message": "Authentication required."
@@ -245,7 +242,6 @@ def end_customer_session(auth_session_id: str):
     user = get_authenticated_user(auth_session_id)
 
     if not user:
-
         return {
             "success": False,
             "message": "Authentication required."

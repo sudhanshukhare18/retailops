@@ -52,3 +52,7 @@ with pool.connection() as conn:
 
 
 print("Users created successfully.")
+
+
+
+pool.close()
