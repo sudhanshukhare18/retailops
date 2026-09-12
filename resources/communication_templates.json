@@ -190,7 +190,30 @@
                 "Regards,",
                 "RetailOps Operations Team"
             ]
-        }
+        },
+"pending_task_alert": {
+    "name": "Pending Task Alert",
+    "audience": "internal",
+
+    "subject": "RetailOps Alert - Pending Approvals",
+
+    "body": [
+        "Dear Owner,",
+        "",
+        "This is an automated notification from RetailOps.",
+        "",
+        "There are currently {{pending_count}} tasks waiting for your approval.",
+        "",
+        "Configured alert threshold: {{threshold}}",
+        "",
+        "Please review the pending tasks in RetailOps.",
+        "",
+        "Thank you for your attention.",
+        "",
+        "Regards,",
+        "RetailOps Operations Team"
+    ]
+}
     }
 }
 
