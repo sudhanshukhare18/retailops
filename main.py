@@ -23,6 +23,13 @@ from tools.cart_tools import (
     view_cart,
     clear_cart
 )
+from tools.product_tools import (
+    search_product,
+    find_product_by_name,
+    get_product_price,
+    check_stock,
+    get_all_product
+)
 
 from tools.billing_tools import generate_bill
 
@@ -137,23 +144,83 @@ def mcp_end_customer_session(
     )
 
 
+
+
+# ==========================================
+# PRODUCT
+# ==========================================
+
+@mcp.tool()
+def mcp_search_product(
+    name: str
+):
+    """
+    Search products by name.
+
+    Use this when the salesperson wants to
+    browse or search available products.
+    """
+
+    return search_product(name)
+
+
+@mcp.tool()
+def mcp_find_product(
+    name: str
+):
+    """
+    Find a product by its natural name.
+
+    This resolves the product name to its
+    internal database product ID.
+    """
+
+    return find_product_by_name(name)
+
+
+@mcp.tool()
+def mcp_get_product_price(
+    product_id: int
+):
+    return get_product_price(product_id)
+
+
+@mcp.tool()
+def mcp_check_stock(
+    product_id: int
+):
+    return check_stock(product_id)
+
+
+@mcp.tool()
+def mcp_get_all_products():
+    return get_all_product()
+
+
 # ==========================================
 # CART
 # ==========================================
 
 @mcp.tool()
+@mcp.tool()
 def mcp_add_to_cart(
     auth_session_id: str,
-    product_id: int,
+    product_name: str,
     quantity: int = 1
 ):
+    """
+    Add a product to the current customer's cart
+    using the product name.
+
+    The product ID is automatically found from
+    the PostgreSQL products table.
+    """
+
     return add_to_cart(
         auth_session_id,
-        product_id,
+        product_name,
         quantity
     )
-
-
 @mcp.tool()
 def mcp_remove_from_cart(
     auth_session_id: str,
