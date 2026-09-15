@@ -454,7 +454,8 @@ def get_business_rules():
 # SERVER
 # ============================================================
 
-if __name__ == "__main__":
+def main():
+    """Initialize the RetailOps schema and start the MCP server."""
 
     initialize_database()
 
@@ -463,3 +464,7 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000
     )
+
+
+if __name__ == "__main__":
+    main()
