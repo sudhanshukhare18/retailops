@@ -3,19 +3,31 @@ import json
 import os
 
 from database import pool
-from tools.auth_tools import get_authenticated_user
-from tools.session_tools import get_current_customer_session
+
+from tools.auth_tools import (
+    get_authenticated_user
+)
+
+from tools.session_tools import (
+    get_current_customer_session
+)
+
+from tools.html_bill_tools import (
+    generate_html_bill
+)
 
 
 # ============================================================
 # GENERATE BILL
 # ============================================================
 
-def generate_bill(auth_session_id: str):
+def generate_bill(
+    auth_session_id: str
+):
 
-    # --------------------------------------------------------
+    # ========================================================
     # AUTHENTICATION
-    # --------------------------------------------------------
+    # ========================================================
 
     user = get_authenticated_user(
         auth_session_id
@@ -29,9 +41,9 @@ def generate_bill(auth_session_id: str):
         }
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # CURRENT CUSTOMER SESSION
-    # --------------------------------------------------------
+    # ========================================================
 
     session = get_current_customer_session(
         auth_session_id
@@ -51,9 +63,9 @@ def generate_bill(auth_session_id: str):
     )
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # BUSINESS RULES
-    # --------------------------------------------------------
+    # ========================================================
 
     base_dir = os.path.dirname(
         os.path.dirname(
@@ -91,7 +103,8 @@ def generate_bill(auth_session_id: str):
                 # LOCK CUSTOMER
                 # ==================================================
 
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT
                         id,
                         name,
@@ -104,9 +117,11 @@ def generate_bill(auth_session_id: str):
                     WHERE id = %s
 
                     FOR UPDATE
-                """, (
-                    customer_id,
-                ))
+                    """,
+                    (
+                        customer_id,
+                    )
+                )
 
                 customer = cur.fetchone()
 
@@ -122,7 +137,8 @@ def generate_bill(auth_session_id: str):
                 # LOCK CART
                 # ==================================================
 
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT
                         id,
                         status
@@ -132,9 +148,11 @@ def generate_bill(auth_session_id: str):
                     WHERE id = %s
 
                     FOR UPDATE
-                """, (
-                    cart_id,
-                ))
+                    """,
+                    (
+                        cart_id,
+                    )
+                )
 
                 cart = cur.fetchone()
 
@@ -158,7 +176,8 @@ def generate_bill(auth_session_id: str):
                 # LOCK CART ITEMS + PRODUCTS
                 # ==================================================
 
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT
                         ci.product_id,
                         ci.quantity,
@@ -175,9 +194,11 @@ def generate_bill(auth_session_id: str):
                     WHERE ci.cart_id = %s
 
                     FOR UPDATE OF ci, p
-                """, (
-                    cart_id,
-                ))
+                    """,
+                    (
+                        cart_id,
+                    )
+                )
 
                 items = cur.fetchall()
 
@@ -225,12 +246,19 @@ def generate_bill(auth_session_id: str):
                         )
 
 
+                    # ----------------------------------------------
+                    # ITEM TOTAL
+                    # ----------------------------------------------
+
                     item_total = (
                         price * quantity
                     )
 
 
-                    # INTERNAL ONLY
+                    # ----------------------------------------------
+                    # INTERNAL PROFIT
+                    # ----------------------------------------------
+
                     item_profit = (
                         price - cost_price
                     ) * quantity
@@ -245,25 +273,23 @@ def generate_bill(auth_session_id: str):
                     # CUSTOMER-SAFE ITEM
                     # ----------------------------------------------
 
-                    bill_items.append({
+                    bill_items.append(
+                        {
+                            "name": name,
 
-                        "name":
-                            name,
+                            "quantity": quantity,
 
-                        "quantity":
-                            quantity,
+                            "selling_price":
+                                float(price),
 
-                        "selling_price":
-                            float(price),
-
-                        "subtotal":
-                            float(item_total)
-                    })
+                            "subtotal":
+                                float(item_total)
+                        }
+                    )
 
 
                 # ==================================================
                 # LOYALTY CALCULATION
-                # INTERNAL ONLY
                 # ==================================================
 
                 minimum_profit = Decimal(
@@ -316,7 +342,11 @@ def generate_bill(auth_session_id: str):
                     )
 
 
+                # ==================================================
+                # REMAINING PROFIT
                 # INTERNAL ONLY
+                # ==================================================
+
                 remaining_profit = (
                     order_profit - discount
                 )
@@ -359,7 +389,11 @@ def generate_bill(auth_session_id: str):
                 )
 
 
+                # ==================================================
+                # NEW CUSTOMER LIFETIME PROFIT
                 # INTERNAL ONLY
+                # ==================================================
+
                 new_lifetime_profit = (
                     lifetime_profit
                     + remaining_profit
@@ -370,7 +404,8 @@ def generate_bill(auth_session_id: str):
                 # CREATE ORDER
                 # ==================================================
 
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO orders (
                         customer_id,
                         total_amount,
@@ -390,14 +425,16 @@ def generate_bill(auth_session_id: str):
                     )
 
                     RETURNING id, created_at
-                """, (
-                    customer_id,
-                    total_amount,
-                    discount,
-                    final_amount,
-                    order_profit,
-                    delivery_status
-                ))
+                    """,
+                    (
+                        customer_id,
+                        total_amount,
+                        discount,
+                        final_amount,
+                        order_profit,
+                        delivery_status
+                    )
+                )
 
 
                 order_id, order_date = (
@@ -421,13 +458,17 @@ def generate_bill(auth_session_id: str):
                     ) = item
 
 
-                    # INTERNAL ONLY
+                    # ----------------------------------------------
+                    # INTERNAL PROFIT
+                    # ----------------------------------------------
+
                     item_profit = (
                         price - cost_price
                     ) * quantity
 
 
-                    cur.execute("""
+                    cur.execute(
+                        """
                         INSERT INTO order_items (
                             order_id,
                             product_id,
@@ -443,53 +484,62 @@ def generate_bill(auth_session_id: str):
                             %s,
                             %s
                         )
-                    """, (
-                        order_id,
-                        product_id,
-                        quantity,
-                        price,
-                        item_profit
-                    ))
+                        """,
+                        (
+                            order_id,
+                            product_id,
+                            quantity,
+                            price,
+                            item_profit
+                        )
+                    )
 
 
                     # ==================================================
                     # UPDATE INVENTORY
                     # ==================================================
 
-                    cur.execute("""
+                    cur.execute(
+                        """
                         UPDATE products
 
                         SET stock =
                             stock - %s
 
                         WHERE id = %s
-                    """, (
-                        quantity,
-                        product_id
-                    ))
+                        """,
+                        (
+                            quantity,
+                            product_id
+                        )
+                    )
 
 
                 # ==================================================
                 # UPDATE CUSTOMER INTERNAL PROFIT
                 # ==================================================
 
-                cur.execute("""
+                cur.execute(
+                    """
                     UPDATE customers
 
                     SET lifetime_profit = %s
 
                     WHERE id = %s
-                """, (
-                    new_lifetime_profit,
-                    customer_id
-                ))
+                    """,
+                    (
+                        new_lifetime_profit,
+                        customer_id
+                    )
+                )
 
 
                 # ==================================================
                 # CHECKOUT CART
                 # ==================================================
 
-                cur.execute("""
+                cur.execute(
+                    """
                     UPDATE carts
 
                     SET
@@ -498,20 +548,23 @@ def generate_bill(auth_session_id: str):
                             CURRENT_TIMESTAMP
 
                     WHERE id = %s
-                """, (
-                    cart_id,
-                ))
+                    """,
+                    (
+                        cart_id,
+                    )
+                )
 
 
                 # ==================================================
                 # COMPLETE CUSTOMER SESSION
                 #
                 # IMPORTANT:
-                # Use customer_session_id,
+                # Use customer_session_id.
                 # NOT auth_session_id.
                 # ==================================================
 
-                cur.execute("""
+                cur.execute(
+                    """
                     UPDATE customer_sessions
 
                     SET
@@ -521,10 +574,12 @@ def generate_bill(auth_session_id: str):
 
                     WHERE id = %s
 
-                      AND status = 'ACTIVE'
-                """, (
-                    customer_session_id,
-                ))
+                    AND status = 'ACTIVE'
+                    """,
+                    (
+                        customer_session_id,
+                    )
+                )
 
 
                 if cur.rowcount == 0:
@@ -535,9 +590,9 @@ def generate_bill(auth_session_id: str):
                     )
 
 
-            # ==================================================
-            # COMMIT EVERYTHING
-            # ==================================================
+            # ====================================================
+            # COMMIT
+            # ====================================================
 
             conn.commit()
 
@@ -553,17 +608,11 @@ def generate_bill(auth_session_id: str):
 
 
     # ========================================================
-    # CUSTOMER-SAFE RESPONSE
-    #
-    # NEVER RETURN:
-    # cost_price
-    # order_profit
-    # lifetime_profit
-    # remaining_profit
-    # margin
+    # CUSTOMER-SAFE ITEMS TEXT
     # ========================================================
 
     items_text_lines = []
+
 
     for item in bill_items:
 
@@ -579,9 +628,90 @@ def generate_bill(auth_session_id: str):
     )
 
 
+    # ========================================================
+    # CUSTOMER-SAFE BILL DATA
+    # ========================================================
+
+    bill_data = {
+
+        "order_id":
+            order_id,
+
+        "order_date":
+            order_date.isoformat(),
+
+        "customer": {
+
+            "name":
+                customer[1],
+
+            "email":
+                customer[3]
+        },
+
+        "items":
+            bill_items,
+
+        "subtotal":
+            float(total_amount),
+
+        "discount":
+            float(discount),
+
+        "final_amount":
+            float(final_amount),
+
+        "delivery_status":
+            delivery_status
+    }
+
+
+    # ========================================================
+    # GENERATE HTML
+    # ========================================================
+
+    html_bill = generate_html_bill(
+        bill_data
+    )
+
+
+    # ========================================================
+    # EMAIL PAYLOAD
+    #
+    # Claude can pass this directly to the
+    # Email Connector.
+    # ========================================================
+
+    email_payload = {
+
+        "to":
+            customer[3],
+
+        "subject":
+            f"RetailOps Invoice #{order_id}",
+
+        "html":
+            html_bill
+    }
+
+
+    # ========================================================
+    # FINAL CUSTOMER-SAFE RESPONSE
+    #
+    # NEVER RETURN:
+    #
+    # cost_price
+    # order_profit
+    # lifetime_profit
+    # remaining_profit
+    # profit_margin
+    # supplier_cost
+    # ========================================================
+
     return {
 
-        "success": True,
+        "success":
+            True,
 
         "message":
             "Bill generated successfully.",
@@ -620,5 +750,12 @@ def generate_bill(auth_session_id: str):
             delivery_status,
 
         "cart_status":
-            "CHECKED_OUT"
+            "CHECKED_OUT",
+
+        # ----------------------------------------------------
+        # Claude Email Connector
+        # ----------------------------------------------------
+
+        "email":
+            email_payload
     }

@@ -4,14 +4,13 @@ from fastmcp import FastMCP
 
 from database import initialize_database
 
-from tools.template_tools import (
-    register_template_resources
-)
+
 from tools.inventory_tools import (
     add_product,
     update_product,
     delete_product
 )
+
 from tools.auth_tools import (
     login,
     logout,
@@ -53,7 +52,6 @@ from tools.task_tools import (
     check_pending_task_alert
 )
 
-
 # ============================================================
 # MCP SERVER
 # ============================================================
@@ -63,13 +61,6 @@ mcp = FastMCP(
 )
 
 
-# ============================================================
-# COMMUNICATION RESOURCES
-# ============================================================
-
-register_template_resources(
-    mcp
-)
 
 
 # ============================================================

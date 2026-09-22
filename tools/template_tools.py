@@ -1,443 +1,443 @@
-import json
-import os
+# import json
+# import os
 
-from fastmcp import FastMCP
+# from fastmcp import FastMCP
 
 
-# ============================================================
-# PATH
-# ============================================================
+# # ============================================================
+# # PATH
+# # ============================================================
 
-BASE_DIR = os.path.dirname(
-    os.path.dirname(
-        os.path.abspath(__file__)
-    )
-)
+# BASE_DIR = os.path.dirname(
+#     os.path.dirname(
+#         os.path.abspath(__file__)
+#     )
+# )
 
-TEMPLATE_FILE = os.path.join(
-    BASE_DIR,
-    "resources",
-    "communication_templates.json"
-)
+# TEMPLATE_FILE = os.path.join(
+#     BASE_DIR,
+#     "resources",
+#     "communication_templates.json"
+# )
 
 
-# ============================================================
-# GOOGLE DRIVE TEMPLATE CONFIGURATION
-# ============================================================
+# # ============================================================
+# # GOOGLE DRIVE TEMPLATE CONFIGURATION
+# # ============================================================
 
-GOOGLE_DRIVE_FOLDER = "RetailOps Templates"
+# GOOGLE_DRIVE_FOLDER = "RetailOps Templates"
 
-GOOGLE_DRIVE_DESCRIPTION = (
-    "Google Drive folder containing approved RetailOps "
-    "communication and document templates."
-)
+# GOOGLE_DRIVE_DESCRIPTION = (
+#     "Google Drive folder containing approved RetailOps "
+#     "communication and document templates."
+# )
 
 
-# ============================================================
-# LOAD JSON
-# ============================================================
+# # ============================================================
+# # LOAD JSON
+# # ============================================================
 
-def load_communication_templates():
+# def load_communication_templates():
 
-    with open(
-        TEMPLATE_FILE,
-        "r",
-        encoding="utf-8"
-    ) as file:
+#     with open(
+#         TEMPLATE_FILE,
+#         "r",
+#         encoding="utf-8"
+#     ) as file:
 
-        return json.load(file)
+#         return json.load(file)
 
 
-# ============================================================
-# INTERNAL TEMPLATE LOADER
-# ============================================================
+# # ============================================================
+# # INTERNAL TEMPLATE LOADER
+# # ============================================================
 
-def get_template(template_name: str):
+# def get_template(template_name: str):
 
-    data = load_communication_templates()
+#     data = load_communication_templates()
 
-    templates = data.get(
-        "templates",
-        {}
-    )
+#     templates = data.get(
+#         "templates",
+#         {}
+#     )
 
-    template = templates.get(
-        template_name
-    )
+#     template = templates.get(
+#         template_name
+#     )
 
-    if not template:
-        return None
+#     if not template:
+#         return None
 
-    return template
+#     return template
 
 
-# ============================================================
-# REGISTER MCP RESOURCES + TOOLS
-# ============================================================
+# # ============================================================
+# # REGISTER MCP RESOURCES + TOOLS
+# # ============================================================
 
-def register_template_resources(mcp: FastMCP):
+# def register_template_resources(mcp: FastMCP):
 
 
-    # ========================================================
-    # RESOURCE 1
-    # Complete communication policy + template metadata
-    # ========================================================
+#     # ========================================================
+#     # RESOURCE 1
+#     # Complete communication policy + template metadata
+#     # ========================================================
 
-    @mcp.resource(
-        "templates://communication"
-    )
-    def communication_templates():
+#     @mcp.resource(
+#         "templates://communication"
+#     )
+#     def communication_templates():
 
-        templates = load_communication_templates()
+#         templates = load_communication_templates()
 
-        return json.dumps(
-            templates,
-            indent=2,
-            ensure_ascii=False
-        )
+#         return json.dumps(
+#             templates,
+#             indent=2,
+#             ensure_ascii=False
+#         )
 
 
-    # ========================================================
-    # RESOURCE 2
-    # Communication policy only
-    # ========================================================
+#     # ========================================================
+#     # RESOURCE 2
+#     # Communication policy only
+#     # ========================================================
 
-    @mcp.resource(
-        "policies://communication"
-    )
-    def communication_policy():
+#     @mcp.resource(
+#         "policies://communication"
+#     )
+#     def communication_policy():
 
-        templates = load_communication_templates()
+#         templates = load_communication_templates()
 
-        policy = templates.get(
-            "communication_policy",
-            {}
-        )
+#         policy = templates.get(
+#             "communication_policy",
+#             {}
+#         )
 
-        return json.dumps(
-            policy,
-            indent=2,
-            ensure_ascii=False
-        )
+#         return json.dumps(
+#             policy,
+#             indent=2,
+#             ensure_ascii=False
+#         )
 
 
-    # ========================================================
-    # RESOURCE 3
-    # Individual communication template
-    # ========================================================
+#     # ========================================================
+#     # RESOURCE 3
+#     # Individual communication template
+#     # ========================================================
 
-    @mcp.resource(
-        "templates://communication/{template_name}"
-    )
-    def communication_template(
-        template_name: str
-    ):
+#     @mcp.resource(
+#         "templates://communication/{template_name}"
+#     )
+#     def communication_template(
+#         template_name: str
+#     ):
 
-        template = get_template(
-            template_name
-        )
+#         template = get_template(
+#             template_name
+#         )
 
-        if not template:
+#         if not template:
 
-            return json.dumps({
+#             return json.dumps({
 
-                "success": False,
+#                 "success": False,
 
-                "message": (
-                    f"Template '{template_name}' "
-                    "does not exist."
-                )
+#                 "message": (
+#                     f"Template '{template_name}' "
+#                     "does not exist."
+#                 )
 
-            })
+#             })
 
 
-        return json.dumps(
+#         return json.dumps(
 
-            template,
+#             template,
 
-            indent=2,
+#             indent=2,
 
-            ensure_ascii=False
+#             ensure_ascii=False
 
-        )
+#         )
 
 
-    # ========================================================
-    # RESOURCE 4
-    # Google Drive document template specification
-    # ========================================================
+#     # ========================================================
+#     # RESOURCE 4
+#     # Google Drive document template specification
+#     # ========================================================
 
-    @mcp.resource(
-        "templates://documents/bill"
-    )
-    def bill_document_template():
+#     @mcp.resource(
+#         "templates://documents/bill"
+#     )
+#     def bill_document_template():
 
-        bill_template = {
+#         bill_template = {
 
-            "success": True,
+#             "success": True,
 
-            "name": "Customer Bill Document",
+#             "name": "Customer Bill Document",
 
-            "description": (
-                "Approved DOCX template used to create "
-                "the customer's final bill."
-            ),
+#             "description": (
+#                 "Approved DOCX template used to create "
+#                 "the customer's final bill."
+#             ),
 
-            "audience": "customer",
+#             "audience": "customer",
 
-            "storage": {
+#             "storage": {
 
-                "provider": "Google Drive",
+#                 "provider": "Google Drive",
 
-                "folder": GOOGLE_DRIVE_FOLDER,
+#                 "folder": GOOGLE_DRIVE_FOLDER,
 
-                "file_name": "bill_template.docx",
+#                 "file_name": "bill_template.docx",
 
-                "description": GOOGLE_DRIVE_DESCRIPTION
+#                 "description": GOOGLE_DRIVE_DESCRIPTION
 
-            },
+#             },
 
-            "retrieval_instruction": (
-                "Retrieve the approved bill_template.docx "
-                "from the RetailOps Templates folder in "
-                "Google Drive. Do not use an alternative "
-                "template."
-            ),
+#             "retrieval_instruction": (
+#                 "Retrieve the approved bill_template.docx "
+#                 "from the RetailOps Templates folder in "
+#                 "Google Drive. Do not use an alternative "
+#                 "template."
+#             ),
 
-            "allowed_fields": [
+#             "allowed_fields": [
 
-                "customer_name",
+#                 "customer_name",
 
-                "order_id",
+#                 "order_id",
 
-                "order_date",
+#                 "order_date",
 
-                "items",
+#                 "items",
 
-                "subtotal",
+#                 "subtotal",
 
-                "discount",
+#                 "discount",
 
-                "final_amount",
+#                 "final_amount",
 
-                "delivery_status"
+#                 "delivery_status"
 
-            ],
+#             ],
 
-            "forbidden_fields": [
+#             "forbidden_fields": [
 
-                "cost_price",
+#                 "cost_price",
 
-                "order_profit",
+#                 "order_profit",
 
-                "lifetime_profit",
+#                 "lifetime_profit",
 
-                "profit_margin",
+#                 "profit_margin",
 
-                "remaining_profit",
+#                 "remaining_profit",
 
-                "supplier_cost",
+#                 "supplier_cost",
 
-                "internal_inventory_valuation",
+#                 "internal_inventory_valuation",
 
-                "employee_performance",
+#                 "employee_performance",
 
-                "business_revenue",
+#                 "business_revenue",
 
-                "business_wide_profit"
+#                 "business_wide_profit"
 
-            ]
+#             ]
 
-        }
+#         }
 
 
-        return json.dumps(
+#         return json.dumps(
 
-            bill_template,
+#             bill_template,
 
-            indent=2,
+#             indent=2,
 
-            ensure_ascii=False
+#             ensure_ascii=False
 
-        )
+#         )
 
 
-    # ========================================================
-    # TOOL 1
-    # Get approved communication template
-    # ========================================================
+#     # ========================================================
+#     # TOOL 1
+#     # Get approved communication template
+#     # ========================================================
 
-    @mcp.tool()
-    def get_communication_template(
-        template_name: str
-    ):
+#     @mcp.tool()
+#     def get_communication_template(
+#         template_name: str
+#     ):
 
-        """
-        Retrieve an approved RetailOps communication
-        template definition.
+#         """
+#         Retrieve an approved RetailOps communication
+#         template definition.
 
-        The actual document files are stored in the
-        RetailOps Templates folder in Google Drive.
+#         The actual document files are stored in the
+#         RetailOps Templates folder in Google Drive.
 
-        Customer-facing communication must use an
-        approved RetailOps template.
-        """
+#         Customer-facing communication must use an
+#         approved RetailOps template.
+#         """
 
-        template = get_template(
-            template_name
-        )
+#         template = get_template(
+#             template_name
+#         )
 
 
-        if not template:
+#         if not template:
 
-            return {
+#             return {
 
-                "success": False,
+#                 "success": False,
 
-                "message": (
-                    f"Approved template "
-                    f"'{template_name}' was not found."
-                )
+#                 "message": (
+#                     f"Approved template "
+#                     f"'{template_name}' was not found."
+#                 )
 
-            }
+#             }
 
 
-        return {
+#         return {
 
-            "success": True,
+#             "success": True,
 
-            "template_name": template_name,
+#             "template_name": template_name,
 
-            "template": template,
+#             "template": template,
 
-            "storage": {
+#             "storage": {
 
-                "provider": "Google Drive",
+#                 "provider": "Google Drive",
 
-                "folder": GOOGLE_DRIVE_FOLDER
+#                 "folder": GOOGLE_DRIVE_FOLDER
 
-            },
+#             },
 
-            "instruction": (
-                "Use the approved RetailOps template. "
-                "If a physical document template is required, "
-                "retrieve it from the RetailOps Templates "
-                "folder in Google Drive using the connected "
-                "Google Drive integration. Do not create or "
-                "substitute an unapproved template."
-            )
+#             "instruction": (
+#                 "Use the approved RetailOps template. "
+#                 "If a physical document template is required, "
+#                 "retrieve it from the RetailOps Templates "
+#                 "folder in Google Drive using the connected "
+#                 "Google Drive integration. Do not create or "
+#                 "substitute an unapproved template."
+#             )
 
-        }
+#         }
 
 
-    # ========================================================
-    # TOOL 2
-    # Explicit customer bill template
-    # ========================================================
+#     # ========================================================
+#     # TOOL 2
+#     # Explicit customer bill template
+#     # ========================================================
 
-    @mcp.tool()
-    def get_customer_bill_template():
+#     @mcp.tool()
+#     def get_customer_bill_template():
 
-        """
-        Retrieve the approved customer bill communication
-        template and Google Drive document information.
+#         """
+#         Retrieve the approved customer bill communication
+#         template and Google Drive document information.
 
-        The actual bill_template.docx is stored in Google
-        Drive and should be retrieved by Claude using its
-        connected Google Drive integration.
-        """
+#         The actual bill_template.docx is stored in Google
+#         Drive and should be retrieved by Claude using its
+#         connected Google Drive integration.
+#         """
 
-        template = get_template(
-            "customer_bill"
-        )
+#         template = get_template(
+#             "customer_bill"
+#         )
 
 
-        if not template:
+#         if not template:
 
-            return {
+#             return {
 
-                "success": False,
+#                 "success": False,
 
-                "message": (
-                    "The approved customer_bill "
-                    "template does not exist."
-                )
+#                 "message": (
+#                     "The approved customer_bill "
+#                     "template does not exist."
+#                 )
 
-            }
+#             }
 
 
-        return {
+#         return {
 
-            "success": True,
+#             "success": True,
 
-            "template_name": "customer_bill",
+#             "template_name": "customer_bill",
 
-            "audience": "customer",
+#             "audience": "customer",
 
-            "template": template,
+#             "template": template,
 
-            "document_template": {
+#             "document_template": {
 
-                "provider": "Google Drive",
+#                 "provider": "Google Drive",
 
-                "folder": GOOGLE_DRIVE_FOLDER,
+#                 "folder": GOOGLE_DRIVE_FOLDER,
 
-                "file_name": "bill_template.docx"
+#                 "file_name": "bill_template.docx"
 
-            },
+#             },
 
-            "allowed_fields": [
+#             "allowed_fields": [
 
-                "customer_name",
+#                 "customer_name",
 
-                "order_id",
+#                 "order_id",
 
-                "order_date",
+#                 "order_date",
 
-                "items",
+#                 "items",
 
-                "subtotal",
+#                 "subtotal",
 
-                "discount",
+#                 "discount",
 
-                "final_amount",
+#                 "final_amount",
 
-                "delivery_status"
+#                 "delivery_status"
 
-            ],
+#             ],
 
-            "forbidden_fields": [
+#             "forbidden_fields": [
 
-                "cost_price",
+#                 "cost_price",
 
-                "order_profit",
+#                 "order_profit",
 
-                "lifetime_profit",
+#                 "lifetime_profit",
 
-                "profit_margin",
+#                 "profit_margin",
 
-                "remaining_profit",
+#                 "remaining_profit",
 
-                "supplier_cost",
+#                 "supplier_cost",
 
-                "internal_inventory_valuation",
+#                 "internal_inventory_valuation",
 
-                "employee_performance",
+#                 "employee_performance",
 
-                "business_revenue",
+#                 "business_revenue",
 
-                "business_wide_profit"
+#                 "business_wide_profit"
 
-            ],
+#             ],
 
-            "instruction": (
-                "Use this approved customer bill template "
-                "for customer communication. Retrieve "
-                "bill_template.docx from the RetailOps Templates "
-                "folder in Google Drive. Populate only the "
-                "allowed customer-facing fields. Never include "
-                "cost price, profit, margins, supplier cost, "
-                "or other internal business information."
-            )
+#             "instruction": (
+#                 "Use this approved customer bill template "
+#                 "for customer communication. Retrieve "
+#                 "bill_template.docx from the RetailOps Templates "
+#                 "folder in Google Drive. Populate only the "
+#                 "allowed customer-facing fields. Never include "
+#                 "cost price, profit, margins, supplier cost, "
+#                 "or other internal business information."
+#             )
 
-        }
+#         }
