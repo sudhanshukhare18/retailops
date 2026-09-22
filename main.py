@@ -7,7 +7,11 @@ from database import initialize_database
 from tools.template_tools import (
     register_template_resources
 )
-
+from tools.inventory_tools import (
+    add_product,
+    update_product,
+    delete_product
+)
 from tools.auth_tools import (
     login,
     logout,
@@ -449,6 +453,76 @@ def get_business_rules():
 
         return file.read()
 
+
+# ============================================================
+# INVENTORY MANAGEMENT
+# MANAGER + OWNER ONLY
+# ============================================================
+
+@mcp.tool()
+def mcp_add_product(
+    auth_session_id: str,
+    name: str,
+    cost_price: float,
+    selling_price: float,
+    stock: int
+):
+    """
+    Add a new product to inventory.
+
+    Only MANAGER and OWNER can perform this operation.
+    """
+
+    return add_product(
+        auth_session_id=auth_session_id,
+        name=name,
+        cost_price=cost_price,
+        selling_price=selling_price,
+        stock=stock
+    )
+
+
+@mcp.tool()
+def mcp_update_product(
+    auth_session_id: str,
+    product_name: str,
+    name: str | None = None,
+    cost_price: float | None = None,
+    selling_price: float | None = None,
+    stock: int | None = None
+):
+    """
+    Update an existing product.
+
+    Only MANAGER and OWNER can perform this operation.
+    """
+
+    return update_product(
+        auth_session_id=auth_session_id,
+        product_name=product_name,
+        name=name,
+        cost_price=cost_price,
+        selling_price=selling_price,
+        stock=stock
+    )
+
+
+@mcp.tool()
+def mcp_delete_product(
+    auth_session_id: str,
+    product_name: str
+):
+    """
+    Delete an existing product.
+
+    Only MANAGER and OWNER can perform this operation.
+    Products used in historical orders are protected.
+    """
+
+    return delete_product(
+        auth_session_id=auth_session_id,
+        product_name=product_name
+    )
 
 # ============================================================
 # SERVER
